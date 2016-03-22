@@ -7,6 +7,7 @@ import com.beust.jcommander.Parameters;
 import com.beust.jcommander.validators.PositiveInteger;
 import com.milaboratory.mixcr.basictypes.Clone;
 import com.milaboratory.mixcr.basictypes.VDJCAlignments;
+import com.milaboratory.mixcr.export.AbstractFieldExtractors;
 import com.milaboratory.mixcr.export.FieldExtractor;
 import com.milaboratory.mixcr.export.FieldExtractors;
 import com.milaboratory.mixcr.export.OutputMode;
@@ -48,6 +49,8 @@ public class ActionExportParameters extends ActionParametersWithOutput {
     public long limit = Long.MAX_VALUE;
 
     public ArrayList<FieldExtractor> exporters;
+
+    private static AbstractFieldExtractors fieldExtractors = FieldExtractors.getInstance();
 
     @Override
     protected List<String> getOutputFiles() {
@@ -118,14 +121,14 @@ public class ActionExportParameters extends ActionParametersWithOutput {
         for (String option : options) {
             if (option.startsWith("-")) {
                 if (!args.isEmpty()) {
-                    extractors.add(FieldExtractors.parse(outputMode, clazz, args.toArray(new String[args.size()])));
+                    extractors.add(fieldExtractors.parse(outputMode, clazz, args.toArray(new String[args.size()])));
                     args.clear();
                 }
             }
             args.add(option.trim());
         }
         if (!args.isEmpty())
-            extractors.add(FieldExtractors.parse(outputMode, clazz, args.toArray(new String[args.size()])));
+            extractors.add(fieldExtractors.parse(outputMode, clazz, args.toArray(new String[args.size()])));
         return extractors;
     }
 
@@ -145,7 +148,7 @@ public class ActionExportParameters extends ActionParametersWithOutput {
     }
 
     public static String listOfFields(Class clazz) {
-        ArrayList<String>[] description = FieldExtractors.getDescription(clazz);
+        ArrayList<String>[] description = FieldExtractors.getInstance().getDescription(clazz);
         return "Available export fields:\n" + Util.printTwoColumns(description[0], description[1], 23, 50, 5, "\n");
     }
 

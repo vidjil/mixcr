@@ -28,35 +28,30 @@
  */
 package com.milaboratory.mixcr.export;
 
+import static com.milaboratory.core.sequence.TranslationParameters.FromCenter;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import com.milaboratory.core.alignment.Alignment;
 import com.milaboratory.core.sequence.AminoAcidSequence;
 import com.milaboratory.core.sequence.NSequenceWithQuality;
 import com.milaboratory.core.sequence.NucleotideSequence;
-import com.milaboratory.mixcr.assembler.ReadToCloneMapping;
 import com.milaboratory.mixcr.basictypes.*;
-import com.milaboratory.mixcr.cli.ActionAssemble;
-import com.milaboratory.mixcr.reference.GeneFeature;
 import com.milaboratory.mixcr.reference.GeneType;
-import com.milaboratory.mixcr.reference.ReferencePoint;
-import org.mapdb.DB;
-import org.mapdb.DBMaker;
 
-import java.io.Closeable;
-import java.io.File;
-import java.io.IOException;
-import java.text.DecimalFormat;
-import java.util.*;
+public class FieldExtractors extends AbstractFieldExtractors {
 
-import static com.milaboratory.core.sequence.TranslationParameters.FromCenter;
-import static com.milaboratory.mixcr.assembler.ReadToCloneMapping.MappingType.Dropped;
+	private static FieldExtractors fieldExtractors = new FieldExtractors();
 
-public final class FieldExtractors {
-    private static final String NULL = "";
-    private static final DecimalFormat SCORE_FORMAT = new DecimalFormat("#.#");
+	private FieldExtractors() {}
 
-    static Field[] descriptors = null;
+	public static FieldExtractors getInstance() {
+		return fieldExtractors;
+	}
 
-    public synchronized static Field[] getFields() {
+    @Override
+    public synchronized Field[] getFields() {
         if (descriptors == null) {
             List<Field> desctiptorsList = new ArrayList<>();
 
@@ -365,83 +360,14 @@ public final class FieldExtractors {
         return descriptors;
     }
 
-    public static FieldExtractor parse(OutputMode outputMode, Class clazz, String[] args) {
-        for (Field field : getFields())
-            if (field.canExtractFrom(clazz) && args[0].equalsIgnoreCase(field.getCommand()))
-                return field.create(outputMode, Arrays.copyOfRange(args, 1, args.length));
-        throw new IllegalArgumentException("Not a valid options: " + Arrays.toString(args));
-    }
-
-    public static ArrayList<String>[] getDescription(Class clazz) {
-        ArrayList<String>[] description = new ArrayList[]{new ArrayList(), new ArrayList()};
-        for (Field field : getFields())
-            if (field.canExtractFrom(clazz)) {
-                description[0].add(field.getCommand());
-                description[1].add(field.getDescription());
-            }
-
-        return description;
-    }
-
-    /* Some typedefs */
-    static abstract class PL_O extends FieldParameterless<VDJCObject> {
-        PL_O(String command, String description, String hHeader, String sHeader) {
-            super(VDJCObject.class, command, description, hHeader, sHeader);
+    protected class ExtractDefaultReferencePointsPositions extends AbstractExtractDefaultReferencePointsPositions {
+        public ExtractDefaultReferencePointsPositions() {
+            super();
         }
     }
 
-    static abstract class PL_A extends FieldParameterless<VDJCAlignments> {
-        PL_A(String command, String description, String hHeader, String sHeader) {
-            super(VDJCAlignments.class, command, description, hHeader, sHeader);
-        }
-    }
-
-    static abstract class PL_C extends FieldParameterless<Clone> {
-        PL_C(String command, String description, String hHeader, String sHeader) {
-            super(Clone.class, command, description, hHeader, sHeader);
-        }
-    }
-
-    static abstract class WP_O<P> extends FieldWithParameters<VDJCObject, P> {
-        protected WP_O(String command, String description) {
-            super(VDJCObject.class, command, description);
-        }
-    }
-
-    private static abstract class FeatureExtractorDescriptor extends WP_O<GeneFeature> {
-        final String hPrefix, sPrefix;
-
-        protected FeatureExtractorDescriptor(String command, String description, String hPrefix, String sPrefix) {
-            super(command, description);
-            this.hPrefix = hPrefix;
-            this.sPrefix = sPrefix;
-        }
-
-        @Override
-        protected GeneFeature getParameters(String[] string) {
-            if (string.length != 1)
-                throw new RuntimeException("Wrong number of parameters for " + getCommand());
-            return GeneFeature.parse(string[0]);
-        }
-
-        @Override
-        protected String getHeader(OutputMode outputMode, GeneFeature parameters) {
-            return choose(outputMode, hPrefix + " ", sPrefix) + GeneFeature.encode(parameters);
-        }
-
-        @Override
-        protected String extractValue(VDJCObject object, GeneFeature parameters) {
-            NSequenceWithQuality feature = object.getFeature(parameters);
-            if (feature == null)
-                return NULL;
-            return convert(feature);
-        }
-
-        public abstract String convert(NSequenceWithQuality seq);
-    }
-
-    private static class ExtractSequence extends FieldParameterless<VDJCObject> {
-        private ExtractSequence(Class targetType, String command, String description, String hHeader, String sHeader) {
+    protected class ExtractSequence extends AbstractExtractSequence {
+        protected ExtractSequence(Class targetType, String command, String description, String hHeader, String sHeader) {
             super(targetType, command, description, hHeader, sHeader);
         }
 
@@ -458,211 +384,4 @@ public final class FieldExtractors {
         }
     }
 
-    private static class ExtractSequenceQuality extends FieldParameterless<VDJCObject> {
-        private ExtractSequenceQuality(Class targetType, String command, String description, String hHeader, String sHeader) {
-            super(targetType, command, description, hHeader, sHeader);
-        }
-
-        @Override
-        protected String extract(VDJCObject object) {
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; ; i++) {
-                sb.append(object.getTarget(i).getQuality());
-                if (i == object.numberOfTargets() - 1)
-                    break;
-                sb.append(",");
-            }
-            return sb.toString();
-        }
-    }
-
-    private static class ExtractReferencePointPosition extends WP_O<ReferencePoint> {
-        protected ExtractReferencePointPosition() {
-            super("-positionOf",
-                    "Exports position of specified reference point inside target sequences " +
-                            "(clonal sequence / read sequence).");
-        }
-
-        @Override
-        protected ReferencePoint getParameters(String[] string) {
-            if (string.length != 1)
-                throw new RuntimeException("Wrong number of parameters for " + getCommand());
-            return ReferencePoint.parse(string[0]);
-        }
-
-        @Override
-        protected String getHeader(OutputMode outputMode, ReferencePoint parameters) {
-            return choose(outputMode, "Position of ", "positionOf") +
-                    ReferencePoint.encode(parameters, true);
-        }
-
-        @Override
-        protected String extractValue(VDJCObject object, ReferencePoint parameters) {
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; ; i++) {
-                sb.append(object.getPartitionedTarget(i).getPartitioning().getPosition(parameters));
-                if (i == object.numberOfTargets() - 1)
-                    break;
-                sb.append(",");
-            }
-            return sb.toString();
-        }
-    }
-
-    private static class ExtractDefaultReferencePointsPositions extends PL_O {
-        public ExtractDefaultReferencePointsPositions() {
-            super("-defaultAnchorPoints", "Outputs a list of default reference points (like CDR2Begin, FR4End, etc. " +
-                    "see documentation for the full list and formatting)", "Ref. points", "refPoints");
-        }
-
-        @Override
-        protected String extract(VDJCObject object) {
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; ; i++) {
-                SequencePartitioning partitioning = object.getPartitionedTarget(i).getPartitioning();
-                for (int j = 0; ; j++) {
-                    int referencePointPosition = partitioning.getPosition(ReferencePoint.DefaultReferencePoints[j]);
-                    if (referencePointPosition >= 0)
-                        sb.append(referencePointPosition);
-                    if (j == ReferencePoint.DefaultReferencePoints.length - 1)
-                        break;
-                    sb.append(":");
-                }
-                if (i == object.numberOfTargets() - 1)
-                    break;
-                sb.append(",");
-            }
-            return sb.toString();
-        }
-
-    }
-
-
-    private static AbstractField<VDJCAlignments> alignmentsToClone(
-            final String command, final String description, final boolean printMapping) {
-        return new AbstractField<VDJCAlignments>(VDJCAlignments.class, command, description) {
-            @Override
-            public FieldExtractor<VDJCAlignments> create(OutputMode outputMode, String[] args) {
-                return new AlignmentToCloneExtractor(outputMode, args[0], printMapping);
-            }
-        };
-    }
-
-    private static final class AlignmentToCloneExtractor
-            implements FieldExtractor<VDJCAlignments>, Closeable {
-        private final OutputMode outputMode;
-        private final DB db;
-        private final NavigableSet<ReadToCloneMapping> byAls;
-        private final boolean printMapping;
-        private final Iterator<ReadToCloneMapping> mappingIterator;
-        private ReadToCloneMapping currentMapping = null;
-
-        public AlignmentToCloneExtractor(OutputMode outputMode, String file, boolean printMapping) {
-            this.outputMode = outputMode;
-            this.printMapping = printMapping;
-            this.db = DBMaker.newFileDB(new File(file))
-                    .transactionDisable()
-                    .make();
-            this.byAls = db.getTreeSet(ActionAssemble.MAPDB_SORTED_BY_ALIGNMENT);
-            this.mappingIterator = byAls.iterator();
-        }
-
-        @Override
-        public String getHeader() {
-            if (printMapping)
-                return choose(outputMode, "Clone mapping", "cloneMapping");
-            else
-                return choose(outputMode, "Clone Id", "cloneId");
-        }
-
-        @Override
-        public String extractValue(VDJCAlignments object) {
-            if (currentMapping == null && mappingIterator.hasNext())
-                currentMapping = mappingIterator.next();
-            if (currentMapping == null)
-                return NULL;
-
-            while (currentMapping.getAlignmentsId() < object.getAlignmentsIndex() && mappingIterator.hasNext())
-                currentMapping = mappingIterator.next();
-            if (currentMapping.getAlignmentsId() != object.getAlignmentsIndex())
-                return printMapping ? Dropped.toString().toLowerCase() : NULL;
-
-            int cloneIndex = currentMapping.getCloneIndex();
-            ReadToCloneMapping.MappingType mt = currentMapping.getMappingType();
-            if (mt == Dropped)
-                return printMapping ? mt.toString().toLowerCase() : NULL;
-            return printMapping ? Integer.toString(cloneIndex) + ":" + mt.toString().toLowerCase() : Integer.toString(cloneIndex);
-        }
-
-        @Override
-        public void close() throws IOException {
-            db.close();
-        }
-    }
-
-    private static final class CloneToReadsExtractor
-            implements FieldExtractor<Clone>, Closeable {
-        private final OutputMode outputMode;
-        private final DB db;
-        private final NavigableSet<ReadToCloneMapping> byClones;
-        private final Iterator<ReadToCloneMapping> mappingIterator;
-        private ReadToCloneMapping currentMapping;
-
-        public CloneToReadsExtractor(OutputMode outputMode, String file) {
-            this.outputMode = outputMode;
-            this.db = DBMaker.newFileDB(new File(file))
-                    .transactionDisable()
-                    .make();
-            this.byClones = db.getTreeSet(ActionAssemble.MAPDB_SORTED_BY_CLONE);
-            this.mappingIterator = byClones.iterator();
-        }
-
-        @Override
-        public String getHeader() {
-            return choose(outputMode, "Reads", "reads");
-        }
-
-        @Override
-        public String extractValue(Clone clone) {
-            if (currentMapping == null && mappingIterator.hasNext())
-                currentMapping = mappingIterator.next();
-            if (currentMapping == null)
-                return NULL;
-
-            while (currentMapping.getCloneIndex() < clone.getId() && mappingIterator.hasNext())
-                currentMapping = mappingIterator.next();
-
-            long count = 0;
-            StringBuilder sb = new StringBuilder();
-            while (currentMapping.getCloneIndex() == clone.getId()) {
-                ++count;
-                assert currentMapping.getCloneIndex() == currentMapping.getCloneIndex();
-                sb.append(currentMapping.getReadId()).append(",");
-                if (!mappingIterator.hasNext())
-                    break;
-                currentMapping = mappingIterator.next();
-            }
-            //count == object.getCount() only if addReadsCountOnClustering=true
-            assert count >= clone.getCount() : "Actual count: " + clone.getCount() + ", in mapping: " + count;
-            if (sb.length() != 0)
-                sb.deleteCharAt(sb.length() - 1);
-            return sb.toString();
-        }
-
-        @Override
-        public void close() throws IOException {
-            db.close();
-        }
-    }
-
-    public static String choose(OutputMode outputMode, String hString, String sString) {
-        switch (outputMode) {
-            case HumanFriendly:
-                return hString;
-            case ScriptingFriendly:
-                return sString;
-            default:
-                throw new NullPointerException();
-        }
-    }
 }

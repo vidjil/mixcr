@@ -13,14 +13,14 @@ import java.util.ArrayList;
 public class ActionExportParametersTest {
     @Test
     public void testName() throws Exception {
-        Field[] fields = FieldExtractors.getFields();
+        Field[] fields = FieldExtractors.getInstance().getFields();
         for (Field field : fields)
             System.out.println(field.getCommand() + "   " + field.getDescription() + "   " + field);
     }
 
     @Test
     public void test1() throws Exception {
-        ArrayList<String>[] description = FieldExtractors.getDescription(Clone.class);
+        ArrayList<String>[] description = FieldExtractors.getInstance().getDescription(Clone.class);
         System.out.println("Available export fields:\n" + Util.printTwoColumns(
                 description[0], description[1], 21, 50, 5, "\n"));
     }

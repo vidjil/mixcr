@@ -113,7 +113,7 @@ public class FieldExtractorsTest {
     @Ignore
     @Test
     public void testName() throws Exception {
-        ArrayList<String>[] cols = FieldExtractors.getDescription(Clone.class);
+        ArrayList<String>[] cols = FieldExtractors.getInstance().getDescription(Clone.class);
         ListIterator<String>[] iterators = new ListIterator[]{cols[0].listIterator(), cols[1].listIterator()};
         while (iterators[0].hasNext()){
             iterators[0].set("| " + remEx(iterators[0].next()));
