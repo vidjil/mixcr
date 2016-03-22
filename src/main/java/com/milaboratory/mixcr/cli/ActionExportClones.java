@@ -37,7 +37,9 @@ import com.milaboratory.mixcr.basictypes.Clone;
 import com.milaboratory.mixcr.basictypes.CloneSet;
 import com.milaboratory.mixcr.basictypes.CloneSetIO;
 import com.milaboratory.mixcr.basictypes.IOUtil;
+import com.milaboratory.mixcr.export.AbstractInfoWriter;
 import com.milaboratory.mixcr.export.InfoWriter;
+import com.milaboratory.mixcr.export.VidjilInfoWriter;
 import com.milaboratory.mixcr.reference.GeneFeature;
 import com.milaboratory.mixcr.reference.LociLibraryManager;
 import com.milaboratory.util.CanReportProgressAndStage;
@@ -54,8 +56,10 @@ public class ActionExportClones extends ActionExport {
     @Override
     public void go0() throws Exception {
         CloneExportParameters parameters = (CloneExportParameters) this.parameters;
+
+        AbstractInfoWriter<Clone> myWriter;
         try (InputStream inputStream = IOUtil.createIS(parameters.getInputFile());
-             InfoWriter<Clone> writer = new InfoWriter<>(parameters.getOutputFile())) {
+             AbstractInfoWriter<Clone> writer = myWriter) {
             CloneSet set = CloneSetIO.read(inputStream, LociLibraryManager.getDefault());
             if (parameters.filterOutOfFrames || parameters.filterStops)
                 set = CloneSet.transform(set, new CFilter(parameters.filterOutOfFrames, parameters.filterStops));
@@ -98,13 +102,13 @@ public class ActionExportClones extends ActionExport {
     @Parameters(commandDescription = "Export clones to tab-delimited text file", optionPrefixes = "-")
     public static final class ExportClones implements CanReportProgressAndStage {
         final CloneSet clones;
-        final InfoWriter<Clone> writer;
+        final AbstractInfoWriter<Clone> writer;
         final long size;
         volatile long current = 0;
         final static String stage = "Exporting clones";
         final long limit;
 
-        private ExportClones(CloneSet clones, InfoWriter<Clone> writer, long limit) {
+        private ExportClones(CloneSet clones, AbstractInfoWriter<Clone> writer, long limit) {
             this.clones = clones;
             this.writer = writer;
             this.size = clones.size();

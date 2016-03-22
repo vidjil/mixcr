@@ -28,51 +28,56 @@
  */
 package com.milaboratory.mixcr.export;
 
+import java.io.BufferedOutputStream;
+import java.io.Closeable;
+import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
-public final class InfoWriter<T> extends AbstractInfoWriter<T> {
+import org.apache.commons.io.output.CloseShieldOutputStream;
 
-	public InfoWriter(OutputStream outputStream) {
-		super(outputStream);
-	}
+import com.milaboratory.mixcr.basictypes.Clone;
 
-	public InfoWriter(String s) throws FileNotFoundException {
-		super(s);
-	}
+import cc.redberry.pipe.InputPort;
 
-    private void ensureInitialized() {
-        if (!initialized) {
-            try {
-                for (int i = 0; i < fieldExtractors.size(); ++i) {
-                    outputStream.write(fieldExtractors.get(i).getHeader().getBytes());
-                    if (i == fieldExtractors.size() - 1)
-                        break;
-                    outputStream.write('\t');
-                }
-                outputStream.write('\n');
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            initialized = true;
-        }
+public abstract class AbstractInfoWriter<T> implements InputPort<T>, AutoCloseable {
+    final ArrayList<FieldExtractor<? super T>> fieldExtractors = new ArrayList<>();
+    final OutputStream outputStream;
+    boolean initialized;
+
+    public AbstractInfoWriter(String file) throws FileNotFoundException {
+        this(".".equals(file) ? new CloseShieldOutputStream(System.out) :
+                new BufferedOutputStream(new FileOutputStream(new File(file)), 65536));
     }
+
+    public void attachInfoProvider(FieldExtractor<? super T> provider) {
+        fieldExtractors.add(provider);
+    }
+
+    public void attachInfoProviders(List<FieldExtractor<? super T>> providers) {
+        fieldExtractors.addAll(providers);
+    }
+
+    public AbstractInfoWriter(OutputStream outputStream) {
+        this.outputStream = outputStream;
+    }
+
+    public abstract void put(T t);
 
     @Override
-    public void put(T t) {
-        ensureInitialized();
-        try {
-            for (int i = 0; i < fieldExtractors.size(); ++i) {
-                outputStream.write(fieldExtractors.get(i).extractValue(t).getBytes());
-                if (i == fieldExtractors.size() - 1)
-                    break;
-                outputStream.write('\t');
-            }
-            outputStream.write('\n');
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public void close() throws IOException {
+        outputStream.close();
+        for (FieldExtractor<? super T> fe : fieldExtractors)
+            if (fe instanceof Closeable)
+                ((Closeable) fe).close();
     }
 
+    public void putReads(List<Clone> clones) {
+        // TODO Auto-generated method stub
+
+    }
 }
