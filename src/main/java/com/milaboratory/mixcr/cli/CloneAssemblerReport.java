@@ -164,6 +164,7 @@ public final class CloneAssemblerReport implements CloneAssemblerListener, Repor
 
         helper.writeField("Final clonotype count", clonesCount)
                 .writeField("Total reads used in clonotypes", alignmentsInClones)
+                .writeField("Total Reads analysed", totalReads)
                 .writePercentField("Reads used, percent of total", alignmentsInClones, totalReads)
                 .writePercentField("Reads used as core, percent of used", coreAlignments.get(), alignmentsInClones)
                 .writePercentField("Mapped low quality reads, percent of used", deferredAlignmentsMapped.get(), alignmentsInClones)
