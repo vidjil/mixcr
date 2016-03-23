@@ -174,7 +174,7 @@ public final class RunMiXCR {
                 return new PairedFastqReader(inputFiles[0], inputFiles[1], true);
             else {
                 String[] s = inputFiles[0].split("\\.");
-                if (s[s.length - 1].equals("fasta"))
+                if (s[s.length - 1].equals("fasta") || s[s.length - 1].equals("fa"))
                     return new FastaSequenceReaderWrapper(
                             new FastaReader<>(inputFiles[0], NucleotideSequence.ALPHABET),
                             true);
