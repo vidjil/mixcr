@@ -37,6 +37,7 @@ import com.milaboratory.core.clustering.Clustering;
 import com.milaboratory.core.clustering.SequenceExtractor;
 import com.milaboratory.core.sequence.NSequenceWithQuality;
 import com.milaboratory.core.sequence.NucleotideSequence;
+import com.milaboratory.core.sequence.Sequence;
 import com.milaboratory.core.sequence.SequenceQuality;
 import com.milaboratory.core.tree.MutationGuide;
 import com.milaboratory.core.tree.NeighborhoodIterator;
@@ -515,7 +516,7 @@ public final class CloneAssembler implements CanReportProgress, AutoCloseable {
             VJCSignature vjcSignature = new VJCSignature(alignments);
             CloneAccumulator acc = accumulators.get(vjcSignature);
             if (acc == null) {
-                acc = new CloneAccumulator(sequence, extractNRegions(sequence, alignments));
+                acc = new CloneAccumulator(sequence, extractNRegions(sequence, alignments), alignments.getOriginalSequences());
                 accumulators.put(vjcSignature, acc);
                 acc.cloneIndex = cloneIndexGenerator.incrementAndGet();
                 onNewCloneCreated(acc);

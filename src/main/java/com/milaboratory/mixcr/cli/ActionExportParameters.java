@@ -16,6 +16,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
+import com.milaboratory.mixcr.export.VidjilFieldExtractors;
 
 /**
  * @author Dmitry Bolotin
@@ -24,6 +25,8 @@ import java.util.*;
 @Parameters(commandDescription = "Export alignments/clones to tab-delimited text file", optionPrefixes = "-")
 public class ActionExportParameters extends ActionParametersWithOutput {
     public static final String DEFAULT_PRESET = "full";
+    public static final String VIDJIL = "vidjil";
+    public static final String MIXCR = "mixcr";
 
     @Parameter(description = "input_file output_file")
     public List<String> files = new ArrayList<>();
@@ -47,6 +50,10 @@ public class ActionExportParameters extends ActionParametersWithOutput {
     @Parameter(description = "Output only first N records",
             names = {"-n", "--limit"}, validateWith = PositiveInteger.class)
     public long limit = Long.MAX_VALUE;
+
+    @Parameter(description = "Output format",
+            names = {"--format"})
+    public String format = "mixcr";
 
     public ArrayList<FieldExtractor> exporters;
 
@@ -88,6 +95,13 @@ public class ActionExportParameters extends ActionParametersWithOutput {
                 add(args[args.length - 2]);
                 add(args[args.length - 1]);
             }};
+
+            if (parameters.format.equals(VIDJIL)) {
+                fieldExtractors = VidjilFieldExtractors.getInstance();
+            } else if (!parameters.format.equals(MIXCR)) {
+                throw new IllegalArgumentException("Invalid output format: " + parameters.format);
+            }
+
             OutputMode outputMode = parameters.noSpaces ? OutputMode.ScriptingFriendly : OutputMode.HumanFriendly;
             parameters.exporters = new ArrayList<>();
             //if preset was explicitly specified

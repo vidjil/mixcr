@@ -31,6 +31,7 @@ package com.milaboratory.mixcr.assembler;
 
 import com.milaboratory.core.Range;
 import com.milaboratory.core.sequence.NSequenceWithQuality;
+import com.milaboratory.core.sequence.NucleotideSequence;
 import com.milaboratory.core.sequence.SequenceQuality;
 import com.milaboratory.mixcr.basictypes.ClonalSequence;
 import com.milaboratory.mixcr.basictypes.VDJCAlignments;
@@ -49,11 +50,13 @@ public final class CloneAccumulator {
     long count = 0, countMapped = 0;
     volatile int cloneIndex = -1;
     final Range[] nRegions;
+    final NSequenceWithQuality[] originalSequences;
 
-    public CloneAccumulator(ClonalSequence sequence, Range[] nRegions) {
+    public CloneAccumulator(ClonalSequence sequence, Range[] nRegions, NSequenceWithQuality[] originalSequences) {
         this.sequence = sequence;
         this.nRegions = nRegions;
         this.quality = sequence.getConcatenated().getQuality().asArray();
+        this.originalSequences = originalSequences;
     }
 
     public ClonalSequence getSequence() {
@@ -107,6 +110,14 @@ public final class CloneAccumulator {
                     iterator.setValue(iterator.value() / (count - countMapped));
             }
         }
+    }
+
+    public NucleotideSequence[] getOriginalNucleotideSequences() {
+        NucleotideSequence[] sequences = new NucleotideSequence[this.originalSequences.length];
+        for(int i = 0; i < originalSequences.length; i++) {
+            sequences[i] = originalSequences[i].getSequence();
+        }
+        return sequences;
     }
 
     public synchronized void accumulate(ClonalSequence data, VDJCAlignments alignment, boolean mapped) {

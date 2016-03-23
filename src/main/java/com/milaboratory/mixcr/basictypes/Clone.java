@@ -29,6 +29,7 @@
 package com.milaboratory.mixcr.basictypes;
 
 import com.milaboratory.core.sequence.NSequenceWithQuality;
+import com.milaboratory.core.sequence.NucleotideSequence;
 import com.milaboratory.mixcr.reference.GeneFeature;
 import com.milaboratory.mixcr.reference.GeneType;
 import com.milaboratory.primitivio.annotations.Serializable;
@@ -41,8 +42,23 @@ public final class Clone extends VDJCObject {
     final long count;
     final int id;
     CloneSet parent = null;
+    public NucleotideSequence[] originalSequences;
 
-    public Clone(NSequenceWithQuality[] targets, EnumMap<GeneType, VDJCHit[]> hits, GeneFeature[] assemblingFeatures, long count, int id) {
+    public Clone(NSequenceWithQuality[] targets, EnumMap<GeneType, VDJCHit[]> hits, GeneFeature[] assemblingFeatures, long count, int id, NucleotideSequence[] originalSequences) {
+        this(targets, hits, assemblingFeatures, count, id);
+        this.originalSequences = originalSequences;
+    }
+
+    public Clone(NSequenceWithQuality[] targets, EnumMap<GeneType, VDJCHit[]> hits, GeneFeature[] assemblingFeatures, long count, int id, String[] originalSequences) {
+        this(targets, hits, assemblingFeatures, count, id);
+        NucleotideSequence[] nSeqs = new NucleotideSequence[originalSequences.length];
+        for(int i = 0; i < originalSequences.length; i++) {
+            nSeqs[i] = new NucleotideSequence(originalSequences[i]);
+        }
+        this.originalSequences = nSeqs;
+    }
+
+    private Clone(NSequenceWithQuality[] targets, EnumMap<GeneType, VDJCHit[]> hits, GeneFeature[] assemblingFeatures, long count, int id) {
         super(hits, targets);
         this.assemblingFeatures = assemblingFeatures;
         this.count = count;

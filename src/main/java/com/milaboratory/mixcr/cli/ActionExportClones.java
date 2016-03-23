@@ -58,6 +58,14 @@ public class ActionExportClones extends ActionExport {
         CloneExportParameters parameters = (CloneExportParameters) this.parameters;
 
         AbstractInfoWriter<Clone> myWriter;
+        if (parameters.format.equals("mixcr")) {
+            myWriter = new InfoWriter<>(parameters.getOutputFile());
+        } else if (parameters.format.equals("vidjil")) {
+            myWriter = new VidjilInfoWriter<>(parameters.getOutputFile());
+        } else {
+            throw new IllegalArgumentException("Invalid output format: " + parameters.format);
+        }
+
         try (InputStream inputStream = IOUtil.createIS(parameters.getInputFile());
              AbstractInfoWriter<Clone> writer = myWriter) {
             CloneSet set = CloneSetIO.read(inputStream, LociLibraryManager.getDefault());
@@ -131,6 +139,7 @@ public class ActionExportClones extends ActionExport {
         }
 
         void run() {
+            writer.putReads(clones.getClones());
             for (Clone clone : clones.getClones()) {
                 if (current == limit)
                     break;

@@ -130,6 +130,14 @@ class IO {
             output.writeLong(object.count);
             output.writeInt(object.id);
             output.writeObject(object.assemblingFeatures);
+            StringBuilder sb = new StringBuilder();
+            String prefix = "";
+            for(NucleotideSequence n : object.originalSequences) {
+                sb.append(prefix);
+                prefix = ",";
+                sb.append(n.toString());
+            }
+            output.writeObject(sb.toString());
         }
 
         @Override
@@ -144,7 +152,8 @@ class IO {
             long count = input.readLong();
             int id = input.readInt();
             GeneFeature[] assemblingFeatures = input.readObject(GeneFeature[].class);
-            return new Clone(targets, hits, assemblingFeatures, count, id);
+            String[] nSeqs = input.readObject(String.class).split(",");
+            return new Clone(targets, hits, assemblingFeatures, count, id, nSeqs);
         }
 
         @Override
