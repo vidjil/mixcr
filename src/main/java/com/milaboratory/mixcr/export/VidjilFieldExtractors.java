@@ -227,7 +227,7 @@ public class VidjilFieldExtractors extends AbstractFieldExtractors {
         protected String extract(VDJCObject object) {
             StringBuilder sb = new StringBuilder();
             for (int i = 0; ; i++) {
-                sb.append(object.getTarget(i).getSequence());
+                sb.append(AminoAcidSequence.translate(object.getTarget(i).getSequence(), FromCenter));
                 if (i == object.numberOfTargets() - 1)
                     break;
                 sb.append(",");
